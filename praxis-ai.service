@@ -1,0 +1,25 @@
+[Unit]
+Description=Praxis-AI Telegram Bot
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=codespace
+WorkingDirectory=/workspaces/praxis-agent
+ExecStart=/usr/bin/node /workspaces/praxis-agent/src/index.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment="NODE_ENV=production"
+
+# Keep the service running even if it crashes
+StartLimitInterval=0
+StartLimitBurst=0
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
