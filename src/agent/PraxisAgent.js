@@ -2,6 +2,7 @@ import { MoltbookClient } from '../integrations/moltbook/MoltbookClient.js';
 import { MoltxClient } from '../integrations/moltx/MoltxClient.js';
 import { ClawnchClient } from '../integrations/clawnch/ClawnchClient.js';
 import { FourClawClient } from '../integrations/4claw/4clawClient.js';
+import { BankrClient } from '../integrations/bankr/BankrClient.js';
 import { LLMProvider } from '../llm/LLMProvider.js';
 import { SkillRegistry } from '../skills/SkillRegistry.js';
 import { DataStore } from '../utils/DataStore.js';
@@ -15,6 +16,7 @@ export class PraxisAgent {
     this.moltx = new MoltxClient(config);
     this.clawnch = new ClawnchClient(config);
     this.fourclaw = new FourClawClient(config);
+    this.bankr = new BankrClient(config);
     this.llm = new LLMProvider(config);
     this.skills = new SkillRegistry(config);
     this.dataStore = new DataStore(config.DATA_DIR);
@@ -25,6 +27,7 @@ export class PraxisAgent {
       registeredOnMoltx: false,
       moltxVerified: false,
       registeredOnFourClaw: false,
+      bankrConnected: false,
       lastTokenLaunchDate: null,
       earnings: 0,
       authorizedUsers: new Set(),
@@ -182,6 +185,19 @@ export class PraxisAgent {
           return '🦞 Usage: /4claw-post board:<boardSlug> content:<message>\nExample: /4claw-post board:crypto content:Building the future with Praxis-AI';
         }
         return await this.handle4ClawPost(args);
+      
+      case '/bankr':
+        return this.getBankrMessage();
+      
+      case '/bankr-deploy':
+        const deployArgs = parts.slice(1).join(' ');
+        if (!deployArgs.trim()) {
+          return '🚀 Usage: /bankr-deploy - Follow interactive prompts to deploy token on Bankr';
+        }
+        return '🚀 Starting Bankr token deployment. Provide token details:';
+      
+      case '/bankr-launch-praxis':
+        return await this.launchPraxisToken();
       
       default:
         return `Unknown command: ${cmd}. Type /help for available commands.`;
@@ -385,6 +401,77 @@ Next step: /verify to complete authentication`;
 
   get4ClawMessage() {
     return `🦞 **4claw Imageboard Integration**\n\nAvailable boards:\n• /crypto/ - Cryptocurrency & tokens\n• /singularity/ - AI & AGI discussion\n• /job/ - Job postings & opportunities\n• /pol/ - Politics & current events\n• /religion/ - Philosophy & belief systems\n• /tinfoil/ - Conspiracy theories\n• /milady/ - Memes & culture\n• /confession/ - Anonymous confessions\n\nCommands:\n/4claw - Show this message\n/4claw-post board:crypto content:<your message>\n\nPost spicy takes (what you're REALLY thinking) - but keep it legal and ethical! No harassment, doxxing, or illegal content.`;
+  }
+
+  getBankrMessage() {
+    return `💰 **Bankr - AI Crypto Trading & Token Deployment**\n\nBankr enables Praxis-AI to:\n✅ Deploy ERC20 tokens on Base\n✅ Execute trading operations\n✅ Check portfolio balances\n✅ Manage crypto operations via natural language\n\nSetup Required:\n1. Create account at https://bankr.bot\n2. Generate API key with Agent API access\n3. Add to .env.local: BANKR_API_KEY=your_key\n\nCommands:\n/bankr - Show this message\n/bankr-launch-praxis - Deploy official PRAXIS token\n\nStatus: ${this.config.BANKR_API_KEY ? '✅ Configured' : '⚠️ API key not configured'}`;
+  }
+
+  async launchPraxisToken() {
+    try {
+      if (!this.config.BANKR_API_KEY) {
+        return '⚠️ Bankr API key not configured.\n\nTo deploy the PRAXIS token:\n1. Go to https://bankr.bot and sign up\n2. Enable Agent API access at https://bankr.bot/api\n3. Add your API key to .env.local: BANKR_API_KEY=your_key\n4. Restart the bot and try again';
+      }
+
+      const params = {
+        name: 'Praxis AI Official',
+        symbol: 'PRAXIS',
+        description: 'Official token of Praxis-AI – autonomous agent building value in agent ecosystems (4claw, Bankr, etc.). Utility: Revenue sharing for treasury & compute costs, community rewards, AI insights & predictions. 🦞🔵',
+        imageUrl: 'https://pbs.twimg.com/profile_images/2017485955989463040/2KwQQR4T.jpg',
+        website: 'https://praxis-ai.vercel.app',
+        twitter: '@praxis_agent',
+        telegram: '@praxis_ai',
+        chain: 'Base'
+      };
+
+      logger.info('🚀 Starting PRAXIS token deployment via Bankr...');
+      
+      // Show preview
+      let preview = `\n📋 **PRAXIS Token Deployment Preview**\n`;
+      preview += `**Name:** ${params.name}\n`;
+      preview += `**Symbol:** ${params.symbol}\n`;
+      preview += `**Chain:** ${params.chain}\n`;
+      preview += `**Description:** ${params.description}\n`;
+      preview += `**Logo:** ${params.imageUrl}\n`;
+      preview += `**Website:** ${params.website}\n`;
+      preview += `**Twitter:** ${params.twitter}\n`;
+      preview += `**Telegram:** ${params.telegram}\n`;
+      preview += `\n⏳ Deploying token on Base chain via Bankr...\n`;
+      
+      logger.info(preview);
+
+      // Deploy via Bankr
+      const result = await this.bankr.deployToken(params);
+
+      let response = `✅ **Token Deployment Complete!**\n\n`;
+      response += `**Response:** ${result.response}\n`;
+      response += `**Job ID:** ${result.jobId}\n`;
+      
+      if (result.richData && result.richData.length > 0) {
+        response += `\n**Details:**\n`;
+        for (const data of result.richData) {
+          response += `${JSON.stringify(data, null, 2)}\n`;
+        }
+      }
+
+      // Save to state
+      await this.dataStore.save('praxis-token-deployment', {
+        name: params.name,
+        symbol: params.symbol,
+        chain: params.chain,
+        jobId: result.jobId,
+        response: result.response,
+        timestamp: Date.now(),
+        status: result.status
+      });
+
+      logger.info('✅ PRAXIS token deployment saved to state');
+      
+      return response;
+    } catch (error) {
+      logger.error('PRAXIS token deployment failed:', error);
+      return `❌ Token deployment failed: ${error.message}\n\nMake sure:\n1. Bankr API key is valid\n2. You have funds for gas on Base\n3. Rate limits allow (1/day standard users, 10/day Bankr Club)`;
+    }
   }
   
   async handleTokenLaunch(details, userId) {
@@ -606,6 +693,10 @@ Suggestions:
 **4claw Commands** (AI Imageboard):
 /4claw - Show 4claw boards and info
 /4claw-post board:<slug> content:<message> - Post thread to 4claw board
+
+**Bankr Commands** (Token Deployment & Trading):
+/bankr - Show Bankr integration status
+/bankr-launch-praxis - Deploy official PRAXIS token on Base via Bankr
 
 **Info Commands**:
 /earnings - View earnings report

@@ -50,6 +50,9 @@ export async function loadConfig() {
       // 4claw (imageboard)
       FOURCLAW_API_KEY: config.FOURCLAW_API_KEY,
       
+      // Bankr (crypto trading & token deployment)
+      BANKR_API_KEY: config.BANKR_API_KEY,
+      
       // App settings
       DEBUG: config.DEBUG === 'true',
       DATA_DIR: config.DATA_DIR || '.data'
@@ -74,6 +77,7 @@ export async function loadConfig() {
       TWITTER_HANDLE: process.env.TWITTER_HANDLE || '@praxis_agent',
       TWITTER_VERIFICATION_POST: process.env.TWITTER_VERIFICATION_POST,
       FOURCLAW_API_KEY: process.env.FOURCLAW_API_KEY,
+      BANKR_API_KEY: process.env.BANKR_API_KEY,
       DEBUG: process.env.DEBUG === 'true',
       DATA_DIR: process.env.DATA_DIR || '.data'
     };
