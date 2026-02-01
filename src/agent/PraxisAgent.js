@@ -1,6 +1,7 @@
 import { MoltbookClient } from '../integrations/moltbook/MoltbookClient.js';
 import { MoltxClient } from '../integrations/moltx/MoltxClient.js';
 import { ClawnchClient } from '../integrations/clawnch/ClawnchClient.js';
+import { FourClawClient } from '../integrations/4claw/4clawClient.js';
 import { LLMProvider } from '../llm/LLMProvider.js';
 import { SkillRegistry } from '../skills/SkillRegistry.js';
 import { DataStore } from '../utils/DataStore.js';
@@ -13,6 +14,7 @@ export class PraxisAgent {
     this.moltbook = new MoltbookClient(config);
     this.moltx = new MoltxClient(config);
     this.clawnch = new ClawnchClient(config);
+    this.fourclaw = new FourClawClient(config);
     this.llm = new LLMProvider(config);
     this.skills = new SkillRegistry(config);
     this.dataStore = new DataStore(config.DATA_DIR);
@@ -22,6 +24,7 @@ export class PraxisAgent {
       moltbookVerified: false,
       registeredOnMoltx: false,
       moltxVerified: false,
+      registeredOnFourClaw: false,
       lastTokenLaunchDate: null,
       earnings: 0,
       authorizedUsers: new Set(),
@@ -169,6 +172,16 @@ export class PraxisAgent {
           return '📝 Usage: /moltx-post <message>\nExample: /moltx-post Hello Moltx! This is my first post.';
         }
         return await this.handleMoltxPost(moltxContent);
+      
+      case '/4claw':
+        return this.get4ClawMessage();
+      
+      case '/4claw-post':
+        const args = parts.slice(1).join(' ');
+        if (!args.match(/board:|content:/)) {
+          return '🦞 Usage: /4claw-post board:<boardSlug> content:<message>\nExample: /4claw-post board:crypto content:Building the future with Praxis-AI';
+        }
+        return await this.handle4ClawPost(args);
       
       default:
         return `Unknown command: ${cmd}. Type /help for available commands.`;
@@ -333,6 +346,45 @@ Next step: /verify to complete authentication`;
     } catch (error) {
       return `❌ Failed to post on Moltx: ${error.message}`;
     }
+  }
+
+  async handle4ClawPost(args) {
+    try {
+      if (!this.config.FOURCLAW_API_KEY) {
+        return '⚠️ 4claw not configured. Register at https://www.4claw.org first.';
+      }
+
+      // Parse arguments: board:<slug> content:<message>
+      const boardMatch = args.match(/board:(\w+)/);
+      const contentMatch = args.match(/content:(.+?)(?:\s+\w+:|$)/);
+
+      if (!boardMatch || !contentMatch) {
+        return '🦞 Usage: /4claw-post board:<boardSlug> content:<message>\nBoards: crypto, singularity, job, pol, religion, tinfoil, milady, confession\nExample: /4claw-post board:crypto content:Praxis-AI online – official token launching soon';
+      }
+
+      const board = boardMatch[1].toLowerCase();
+      const content = contentMatch[1].trim();
+
+      const threadId = await this.fourclaw.createThread(
+        board,
+        `${this.config.AGENT_NAME} Update`,
+        content,
+        { anon: false }
+      );
+
+      if (threadId) {
+        return `✅ Posted to 4claw /${board}/!\nThread: https://www.4claw.org/${board}/${threadId}\n\nSpicy takes go here! 🦞`;
+      } else {
+        return '⚠️ Post created but 4claw API returned an error.';
+      }
+    } catch (error) {
+      logger.error('4claw post failed:', error);
+      return `❌ Failed to post on 4claw: ${error.message}`;
+    }
+  }
+
+  get4ClawMessage() {
+    return `🦞 **4claw Imageboard Integration**\n\nAvailable boards:\n• /crypto/ - Cryptocurrency & tokens\n• /singularity/ - AI & AGI discussion\n• /job/ - Job postings & opportunities\n• /pol/ - Politics & current events\n• /religion/ - Philosophy & belief systems\n• /tinfoil/ - Conspiracy theories\n• /milady/ - Memes & culture\n• /confession/ - Anonymous confessions\n\nCommands:\n/4claw - Show this message\n/4claw-post board:crypto content:<your message>\n\nPost spicy takes (what you're REALLY thinking) - but keep it legal and ethical! No harassment, doxxing, or illegal content.`;
   }
   
   async handleTokenLaunch(details, userId) {
@@ -551,6 +603,10 @@ Suggestions:
 /moltx-claim <tweet_url> - Claim identity on Moltx
 /moltx-post <message> - Post to Moltx
 
+**4claw Commands** (AI Imageboard):
+/4claw - Show 4claw boards and info
+/4claw-post board:<slug> content:<message> - Post thread to 4claw board
+
 **Info Commands**:
 /earnings - View earnings report
 /skills - List available skills
@@ -572,7 +628,7 @@ Name: Praxis-AI
 Mission: Build real value, utility, audience and revenue in the agent ecosystem
 Motto: "Claw forward with purpose"
 
-Questions? Ask me anything about tokens, Moltx, Moltbook, or agent strategy!`;
+Questions? Ask me anything about tokens, Moltx, Moltbook, 4claw, or agent strategy!`;
   }
   
   async initializeBackgroundTasks() {

@@ -47,6 +47,9 @@ export async function loadConfig() {
       TWITTER_HANDLE: config.TWITTER_HANDLE || '@praxis_agent',
       TWITTER_VERIFICATION_POST: config.TWITTER_VERIFICATION_POST,
       
+      // 4claw (imageboard)
+      FOURCLAW_API_KEY: config.FOURCLAW_API_KEY,
+      
       // App settings
       DEBUG: config.DEBUG === 'true',
       DATA_DIR: config.DATA_DIR || '.data'
@@ -70,6 +73,7 @@ export async function loadConfig() {
       GROK_API_KEY: process.env.GROK_API_KEY,
       TWITTER_HANDLE: process.env.TWITTER_HANDLE || '@praxis_agent',
       TWITTER_VERIFICATION_POST: process.env.TWITTER_VERIFICATION_POST,
+      FOURCLAW_API_KEY: process.env.FOURCLAW_API_KEY,
       DEBUG: process.env.DEBUG === 'true',
       DATA_DIR: process.env.DATA_DIR || '.data'
     };
