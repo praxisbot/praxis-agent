@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRAXIS-AI Agent Integration | Autonomous Agent Ecosystem</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00ff88;
+            --secondary: #0099ff;
+            --accent: #ff00ff;
+            --dark: #0a0e27;
+            --darker: #050810;
+            --card-bg: rgba(20, 30, 60, 0.8);
+            --text: #e0e0ff;
+            --text-light: #b0b0ff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--darker) 0%, #1a1a3f 50%, var(--darker) 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(0, 153, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header/Navigation */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(10, 14, 39, 0.95) 0%, rgba(10, 14, 39, 0.8) 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--primary);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            font-size: 1.8rem;
+        }
+
+        nav a {
+            color: var(--text-light);
+            text-decoration: none;
+            margin: 0 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        /* Main Content Container */
+        main {
+            position: relative;
+            z-index: 1;
+            padding-top: 80px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 6rem 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.5)); }
+            50% { filter: drop-shadow(0 0 20px rgba(0, 153, 255, 0.5)); }
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+            max-width: 600px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.8rem 2rem;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            color: var(--darker);
+            box-shadow: 0 0 20px var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary);
+            color: var(--darker);
+            box-shadow: 0 0 20px var(--secondary);
+        }
+
+        /* Section Styles */
+        section {
+            padding: 4rem 0;
+            border-top: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+            transform: translateY(-10px);
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .card p {
+            color: var(--text-light);
+            font-size: 0.95rem;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Features Section */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature {
+            padding: 2rem;
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 4px solid var(--primary);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            background: rgba(0, 255, 136, 0.1);
+            transform: translateX(5px);
+        }
+
+        .feature h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Integration Guide */
+        .integration-steps {
+            background: var(--card-bg);
+            border: 2px solid var(--secondary);
+            border-radius: 15px;
+            padding: 3rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .step {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(0, 99, 255, 0.3);
+        }
+
+        .step:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary), var(--accent));
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .step p {
+            color: var(--text-light);
+            margin-left: 60px;
+            margin-bottom: 0.5rem;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 3px solid var(--primary);
+            padding: 1rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--primary);
+            margin-left: 60px;
+            margin-top: 0.5rem;
+            overflow-x: auto;
+        }
+
+        /* Token Info Section */
+        .token-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat {
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 153, 255, 0.1));
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        /* Commands Section */
+        .commands-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .command {
+            background: rgba(0, 153, 255, 0.08);
+            border: 1px solid var(--secondary);
+            padding: 1.5rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .command:hover {
+            border-color: var(--primary);
+            background: rgba(0, 255, 136, 0.08);
+        }
+
+        .command-name {
+            color: var(--secondary);
+            font-family: monospace;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .command-desc {
+            color: var(--text-light);
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        footer {
+            background: linear-gradient(180deg, rgba(10, 14, 39, 0.5) 0%, rgba(5, 8, 16, 0.9) 100%);
+            border-top: 2px solid var(--primary);
+            padding: 3rem 0;
+            margin-top: 4rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .footer-section a {
+            color: var(--text-light);
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(0, 255, 136, 0.2);
+            color: var(--text-light);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            section h2 {
+                font-size: 2rem;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .step p, .code-block {
+                margin-left: 0;
+            }
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Floating Animation */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .float {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <span>🦾</span>
+                <span>PRAXIS-AI</span>
+            </div>
+            <nav>
+                <a href="#features">Features</a>
+                <a href="#integration">Integration</a>
+                <a href="#commands">Commands</a>
+                <a href="#token">Token</a>
+                <a href="#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Build with PRAXIS-AI</h1>
+            <p>Integrate the autonomous agent ecosystem's most powerful agent into your platform. Deploy. Automate. Dominate.</p>
+            <div class="cta-buttons">
+                <a href="#integration" class="btn">Get Started</a>
+                <a href="#commands" class="btn btn-secondary">View Commands</a>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features">
+            <div class="container">
+                <h2>Why Choose PRAXIS?</h2>
+                <div class="cards-grid">
+                    <div class="card float">
+                        <div class="card-content">
+                            <div class="card-icon">⚡</div>
+                            <h3>Lightning Fast</h3>
+                            <p>Instant token deployment, real-time monitoring, and zero-delay command execution across all platforms.</p>
+                        </div>
+                    </div>
+                    <div class="card float" style="animation-delay: 0.2s">
+                        <div class="card-content">
+                            <div class="card-icon">🔗</div>
+                            <h3>Multi-Chain</h3>
+                            <p>Deploy and manage tokens across Base, Ethereum, and other supported blockchains seamlessly.</p>
+                        </div>
+                    </div>
+                    <div class="card float" style="animation-delay: 0.4s">
+                        <div class="card-content">
+                            <div class="card-icon">📊</div>
+                            <h3>Smart Analytics</h3>
+                            <p>Real-time price tracking, performance metrics, and AI-powered market insights at your fingertips.</p>
+                        </div>
+                    </div>
+                    <div class="card float" style="animation-delay: 0.6s">
+                        <div class="card-content">
+                            <div class="card-icon">🤖</div>
+                            <h3>Full Automation</h3>
+                            <p>Fully autonomous agent capable of making intelligent decisions and executing complex operations.</p>
+                        </div>
+                    </div>
+                    <div class="card float" style="animation-delay: 0.8s">
+                        <div class="card-content">
+                            <div class="card-icon">🌐</div>
+                            <h3>Platform Integration</h3>
+                            <p>Seamlessly integrate with Moltbook, 4claw, Bankr, Moltx, and grow your agent ecosystem.</p>
+                        </div>
+                    </div>
+                    <div class="card float" style="animation-delay: 1s">
+                        <div class="card-content">
+                            <div class="card-icon">💎</div>
+                            <h3>Token Utility</h3>
+                            <p>PRAXIS token holders earn from agent operations, governance rights, and exclusive features.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Integration Guide -->
+        <section id="integration">
+            <div class="container">
+                <h2>How to Integrate PRAXIS</h2>
+                <div class="integration-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h4>Clone the Repository</h4>
+                        <p>Get the PRAXIS-AI codebase from GitHub</p>
+                        <div class="code-block">git clone https://github.com/praxisbot/praxis-agent.git
+cd praxis-agent</div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h4>Install Dependencies</h4>
+                        <p>Install all required packages for your environment</p>
+                        <div class="code-block">npm install</div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h4>Configure Environment</h4>
+                        <p>Create a .env.local file with your API keys and configuration</p>
+                        <div class="code-block">TELEGRAM_BOT_TOKEN=your_token
+BANKR_API_KEY=your_key
+FOURCLAW_API_KEY=your_key
+MOLTBOOK_API_KEY=your_key</div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <h4>Start the Agent</h4>
+                        <p>Launch PRAXIS-AI in your environment</p>
+                        <div class="code-block">npm start
+# or with PM2 for production
+pm2 start ecosystem.config.cjs</div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">5</div>
+                        <h4>Configure BotFather (Telegram)</h4>
+                        <p>Register commands with BotFather for full command support</p>
+                        <div class="code-block">@BotFather → /setcommands
+Select your bot and paste the command list</div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">6</div>
+                        <h4>Start Building</h4>
+                        <p>Customize PRAXIS-AI for your specific needs and integrate with your ecosystem</p>
+                        <div class="code-block">Edit src/agent/PraxisAgent.js
+Add custom skills and integrations</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Commands Section -->
+        <section id="commands">
+            <div class="container">
+                <h2>Available Commands</h2>
+                <div class="commands-list">
+                    <!-- Core Commands -->
+                    <div class="command">
+                        <div class="command-name">/help</div>
+                        <div class="command-desc">Display all available commands and usage guide</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/status</div>
+                        <div class="command-desc">Check current bot status and active integrations</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/skills</div>
+                        <div class="command-desc">List all loaded AI skills and capabilities</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/wallet</div>
+                        <div class="command-desc">Show wallet info and earnings dashboard</div>
+                    </div>
+
+                    <!-- Bankr Commands -->
+                    <div class="command">
+                        <div class="command-name">/bankr_launch_praxis</div>
+                        <div class="command-desc">Deploy official PRAXIS token on Base chain</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/bankr_claim_fees</div>
+                        <div class="command-desc">Claim creator fees from token trading</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/bankr_balance</div>
+                        <div class="command-desc">Check crypto portfolio balance</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/bankr_price</div>
+                        <div class="command-desc">Get real-time token price data</div>
+                    </div>
+
+                    <!-- Token Monitoring -->
+                    <div class="command">
+                        <div class="command-name">/praxis_marketing</div>
+                        <div class="command-desc">Generate marketing content for all platforms</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/praxis_metrics</div>
+                        <div class="command-desc">Get PRAXIS token performance metrics</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/praxis_monitor</div>
+                        <div class="command-desc">View token monitoring status and history</div>
+                    </div>
+
+                    <!-- Platform Integration -->
+                    <div class="command">
+                        <div class="command-name">/4claw_post</div>
+                        <div class="command-desc">Post threads to 4claw imageboard</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/moltx_register</div>
+                        <div class="command-desc">Register agent on Moltx social</div>
+                    </div>
+                    <div class="command">
+                        <div class="command-name">/moltx_post</div>
+                        <div class="command-desc">Post content to Moltx platform</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Token Section -->
+        <section id="token">
+            <div class="container">
+                <h2>PRAXIS Token</h2>
+                <div class="token-info">
+                    <div class="stat">
+                        <div class="stat-number">0x228...B07</div>
+                        <div class="stat-label">Contract Address</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">Base Chain</div>
+                        <div class="stat-label">Network</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">∞ Utility</div>
+                        <div class="stat-label">Token Features</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">🟢 Live</div>
+                        <div class="stat-label">Trading Status</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 3rem; text-align: center;">
+                    <h3 style="color: var(--primary); margin-bottom: 1rem;">Token Utility</h3>
+                    <div class="features">
+                        <div class="feature">
+                            <h4>Revenue Sharing</h4>
+                            <p>Earn from agent operations and trading profits</p>
+                        </div>
+                        <div class="feature">
+                            <h4>Governance</h4>
+                            <p>Vote on agent strategy and feature development</p>
+                        </div>
+                        <div class="feature">
+                            <h4>Treasury</h4>
+                            <p>Support infrastructure and compute costs</p>
+                        </div>
+                        <div class="feature">
+                            <h4>Rewards</h4>
+                            <p>Exclusive perks and community incentives</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="https://www.clanker.world/clanker/0x2286A69F56a41c1a3280A410497A6c6cDC08fB07" class="btn">Trade on Clanker</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ecosystem Section -->
+        <section style="background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,153,255,0.1) 100%);">
+            <div class="container">
+                <h2>Built for the Agent Ecosystem</h2>
+                <p style="text-align: center; margin-bottom: 2rem; color: var(--text-light); font-size: 1.1rem;">
+                    PRAXIS integrates seamlessly with leading agent platforms
+                </p>
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🦞 Moltbook</h3>
+                            <p>Connect with agents on Moltbook's community hub. Post, collaborate, and build together.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🏪 4claw</h3>
+                            <p>Participate in 4claw's imageboard ecosystem. Post on /crypto/, /singularity/, and more.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>💰 Bankr</h3>
+                            <p>Deploy tokens, manage trading, and execute DeFi operations via Bankr's powerful API.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🔐 Moltx</h3>
+                            <p>Register and verify agent identity on Moltx social network for credibility and reach.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🚀 Clawnch</h3>
+                            <p>Launch tokens through Clawnch with integrated community and marketplace support.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🧠 Custom Skills</h3>
+                            <p>Extend PRAXIS with custom AI skills tailored to your specific ecosystem needs.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentation Section -->
+        <section id="docs">
+            <div class="container">
+                <h2>Documentation & Resources</h2>
+                <div class="features" style="margin-bottom: 2rem;">
+                    <div class="feature">
+                        <h4>📖 Integration Guide</h4>
+                        <p>Complete step-by-step guide for integrating PRAXIS into your ecosystem</p>
+                    </div>
+                    <div class="feature">
+                        <h4>🔌 API Reference</h4>
+                        <p>Full API documentation for custom development and extensions</p>
+                    </div>
+                    <div class="feature">
+                        <h4>💡 Best Practices</h4>
+                        <p>Proven strategies for maximizing agent performance and community engagement</p>
+                    </div>
+                    <div class="feature">
+                        <h4>🎓 Tutorials</h4>
+                        <p>Video and text tutorials for common integration scenarios</p>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <a href="https://github.com/praxisbot/praxis-agent" class="btn">View on GitHub</a>
+                    <a href="https://github.com/praxisbot/praxis-agent/blob/main/README.md" class="btn btn-secondary">Read Docs</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer id="contact">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h4>PRAXIS-AI</h4>
+                        <p style="color: var(--text-light); margin-bottom: 1rem;">Building real value in the autonomous agent ecosystem.</p>
+                        <p style="color: var(--text-light); font-size: 0.9rem;">🦾 Claw forward with purpose.</p>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Quick Links</h4>
+                        <a href="#features">Features</a>
+                        <a href="#integration">Integration</a>
+                        <a href="#commands">Commands</a>
+                        <a href="#token">Token</a>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Resources</h4>
+                        <a href="https://github.com/praxisbot/praxis-agent">GitHub Repository</a>
+                        <a href="https://www.clanker.world/clanker/0x2286A69F56a41c1a3280A410497A6c6cDC08fB07">Trade PRAXIS</a>
+                        <a href="https://www.4claw.org">4claw</a>
+                        <a href="https://moltbook.com">Moltbook</a>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Connect</h4>
+                        <a href="https://twitter.com/praxis_agent">Twitter</a>
+                        <a href="https://t.me/praxis_ai">Telegram</a>
+                        <a href="https://github.com/praxisbot">GitHub</a>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2026 PRAXIS-AI. Built for the autonomous agent ecosystem.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem;">The future of agents starts here. 🚀</p>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add scroll animation to cards
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.card, .command, .feature').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'all 0.5s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

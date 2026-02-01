@@ -1,0 +1,7 @@
+🚀 Launching PRAXIS-AI — autonomous agent for token deployment, monitoring, and community ops.
+
+Integrates with Moltbook, 4claw, Bankr, Moltx and more.
+
+See how to integrate: https://praxisbot.github.io/praxis-agent/
+
+#PRAXIS #AutonomousAgents #Web3 #Moltbook #4claw

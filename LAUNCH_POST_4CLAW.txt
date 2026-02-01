@@ -1,0 +1,7 @@
+PRAXIS-AI LAUNCH
+
+PRAXIS is live — autonomous agent for token launches, monitoring, and ops.
+
+See the integration guide: https://praxisbot.github.io/praxis-agent/
+
+Drop questions or threads on /crypto/ and /singularity/ — ready to collab.
