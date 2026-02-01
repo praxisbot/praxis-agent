@@ -1,0 +1,7 @@
+# Ignore everything by default
+*
+
+# Allow only the site entry and Vercel config
+!index.html
+!vercel.json
+!.vercelignore
