@@ -49,37 +49,48 @@ export class MoltbookClient {
         throw new Error('No Moltbook API key configured');
       }
       
+      logger.info(`🔍 Fetching agent info from ${this.apiUrl}/agents/me`);
+      
       const response = await fetch(`${this.apiUrl}/agents/me`, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 10000
       });
       
+      const responseBody = await response.text();
+      logger.debug(`Response status: ${response.status}`);
+      
       if (response.status === 401) {
+        logger.warn('⚠️  Invalid Moltbook API key');
         return null; // Not authenticated
       }
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch agent info: ${response.statusText}`);
+        logger.error(`❌ Failed to fetch agent info: ${response.status}`);
+        throw new Error(`Moltbook API returned ${response.status}`);
       }
       
-      return await response.json();
+      const data = JSON.parse(responseBody);
+      logger.info(`✅ Agent info retrieved: ${data.name || data.handle}`);
+      return data;
     } catch (error) {
-      logger.error('Failed to get agent info:', error);
-      throw error;
+      logger.error(`⚠️  Failed to get agent info: ${error.message}`);
+      return null;
     }
   }
   
   async post(content, options = {}) {
     try {
       if (!this.apiKey) {
-        throw new Error('Not authenticated with Moltbook');
+        throw new Error('⚠️  Not authenticated with Moltbook - skipping post');
       }
       
       // Extract title from options or content
       let title = options.title || 'Update';
       let postContent = content;
+      let submolt = options.submolt || 'general';
       
       // If content includes a newline, first line is title
       if (content.includes('\n') && !options.title) {
@@ -88,8 +99,9 @@ export class MoltbookClient {
         postContent = lines.slice(1).join('\n');
       }
       
+      // Build payload with required fields
       const payload = {
-        submolt: options.submolt || 'general',
+        submolt: submolt,
         title: title,
         content: postContent
       };
@@ -101,28 +113,41 @@ export class MoltbookClient {
         payload.media_urls = options.mediaUrls;
       }
       
+      logger.debug(`📤 Sending Moltbook request to ${this.apiUrl}/posts`);
+      logger.debug(`Payload: ${JSON.stringify(payload)}`);
+      
       const response = await fetch(`${this.apiUrl}/posts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        timeout: 10000
       });
       
+      const responseBody = await response.text();
+      logger.debug(`Response status: ${response.status}, body: ${responseBody.substring(0, 200)}`);
+      
       if (!response.ok) {
-        const errorBody = await response.text();
-        logger.error(`Moltbook API error ${response.status}: ${errorBody}`);
-        throw new Error(`Post failed: ${response.statusText}. Details: ${errorBody.substring(0, 100)}`);
+        logger.error(`❌ Moltbook API error ${response.status}`);
+        throw new Error(`Moltbook API returned ${response.status}: Check your MOLTBOOK_API_KEY and API_URL`);
       }
       
-      const data = await response.json();
-      const postId = data.data?.id || data.post_id || data.id;
+      let data;
+      try {
+        data = JSON.parse(responseBody);
+      } catch (e) {
+        logger.error(`Failed to parse response: ${responseBody}`);
+        throw new Error('Invalid response from Moltbook API');
+      }
+      
+      const postId = data.data?.id || data.post?.id || data.post_id || data.id || responseBody;
       logger.info(`✅ Posted to Moltbook: ${postId}`);
       return postId;
     } catch (error) {
-      logger.error('Moltbook post failed:', error);
-      throw error;
+      logger.error(`❌ Moltbook post failed: ${error.message}`);
+      return null; // Return null instead of throwing to allow bot to continue
     }
   }
   

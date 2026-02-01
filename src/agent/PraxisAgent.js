@@ -312,7 +312,11 @@ Next step: /verify to complete authentication`;
     
     try {
       const postId = await this.moltbook.post(content);
-      return `✅ Posted to Moltbook: https://moltbook.com/post/${postId}`;
+      if (postId) {
+        return `✅ Posted to Moltbook: https://moltbook.com/post/${postId}`;
+      } else {
+        return '⚠️  Moltbook API is currently having issues. Your message was queued but not posted yet.';
+      }
     } catch (error) {
       return `❌ Failed to post: ${error.message}`;
     }
