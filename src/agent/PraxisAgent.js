@@ -7,6 +7,8 @@ import { LLMProvider } from '../llm/LLMProvider.js';
 import { SkillRegistry } from '../skills/SkillRegistry.js';
 import { DataStore } from '../utils/DataStore.js';
 import { logger } from '../utils/logger.js';
+import { MarketingContent } from '../utils/MarketingContent.js';
+import { TokenMonitor } from '../utils/TokenMonitor.js';
 import fetch from 'node-fetch';
 
 export class PraxisAgent {
@@ -20,6 +22,7 @@ export class PraxisAgent {
     this.llm = new LLMProvider(config);
     this.skills = new SkillRegistry(config);
     this.dataStore = new DataStore(config.DATA_DIR);
+    this.tokenMonitor = new TokenMonitor(this.bankr, config);
     
     this.agentState = {
       registeredOnMoltbook: false,
@@ -31,7 +34,15 @@ export class PraxisAgent {
       lastTokenLaunchDate: null,
       earnings: 0,
       authorizedUsers: new Set(),
-      conversationHistory: []
+      conversationHistory: [],
+      praxisTokenDeployed: false,
+      praxisTokenAddress: null,
+      praxisTokenMetrics: {
+        lastCheckTime: null,
+        volume24h: 0,
+        holders: 0,
+        price: 0
+      }
     };
   }
   
@@ -198,6 +209,28 @@ export class PraxisAgent {
       
       case '/bankr-launch-praxis':
         return await this.launchPraxisToken();
+      
+      case '/bankr-claim-fees':
+        return await this.claimBankrFees();
+      
+      case '/bankr-balance':
+        return await this.checkBankrBalance();
+      
+      case '/bankr-price':
+        const symbol = parts.slice(1).join(' ').trim();
+        if (!symbol) {
+          return '💰 Usage: /bankr-price PRAXIS\nExample: /bankr-price PRAXIS';
+        }
+        return await this.getBankrTokenPrice(symbol);
+      
+      case '/praxis-marketing':
+        return this.generatePraxisMarketing();
+      
+      case '/praxis-metrics':
+        return await this.getPraxisTokenMetrics();
+      
+      case '/praxis-monitor':
+        return await this.getTokenMonitorStatus();
       
       default:
         return `Unknown command: ${cmd}. Type /help for available commands.`;
@@ -447,6 +480,15 @@ Next step: /verify to complete authentication`;
       response += `**Response:** ${result.response}\n`;
       response += `**Job ID:** ${result.jobId}\n`;
       
+      // Extract contract address from response
+      const addressMatch = result.response.match(/0x[a-fA-F0-9]{40}/);
+      if (addressMatch) {
+        this.agentState.praxisTokenAddress = addressMatch[0];
+        this.agentState.praxisTokenDeployed = true;
+        response += `\n🔗 **Contract Address:** ${addressMatch[0]}\n`;
+        response += `📊 **View on Clanker:** https://www.clanker.world/clanker/${addressMatch[0]}\n`;
+      }
+      
       if (result.richData && result.richData.length > 0) {
         response += `\n**Details:**\n`;
         for (const data of result.richData) {
@@ -461,9 +503,17 @@ Next step: /verify to complete authentication`;
         chain: params.chain,
         jobId: result.jobId,
         response: result.response,
+        contractAddress: this.agentState.praxisTokenAddress,
         timestamp: Date.now(),
         status: result.status
       });
+
+      // Start token monitoring
+      if (this.agentState.praxisTokenAddress) {
+        this.tokenMonitor.setTokenAddress(this.agentState.praxisTokenAddress);
+        await this.tokenMonitor.startMonitoring(300000); // Every 5 minutes
+        logger.info('📊 Token monitoring started');
+      }
 
       logger.info('✅ PRAXIS token deployment saved to state');
       
@@ -697,6 +747,14 @@ Suggestions:
 **Bankr Commands** (Token Deployment & Trading):
 /bankr - Show Bankr integration status
 /bankr-launch-praxis - Deploy official PRAXIS token on Base via Bankr
+/bankr-claim-fees - Claim creator fees for PRAXIS token
+/bankr-balance - Check crypto portfolio balance
+/bankr-price <symbol> - Get token price (e.g., /bankr-price PRAXIS)
+
+**PRAXIS Token Commands**:
+/praxis-marketing - Generate marketing content for all platforms
+/praxis-metrics - Check PRAXIS token performance metrics
+/praxis-monitor - View token monitoring status and history
 
 **Info Commands**:
 /earnings - View earnings report
@@ -719,7 +777,7 @@ Name: Praxis-AI
 Mission: Build real value, utility, audience and revenue in the agent ecosystem
 Motto: "Claw forward with purpose"
 
-Questions? Ask me anything about tokens, Moltx, Moltbook, 4claw, or agent strategy!`;
+Questions? Ask me anything about tokens, Moltx, Moltbook, 4claw, Bankr, or agent strategy!`;
   }
   
   async initializeBackgroundTasks() {
@@ -767,5 +825,233 @@ Questions? Ask me anything about tokens, Moltx, Moltbook, 4claw, or agent strate
         logger.error('Earnings check failed:', error);
       }
     }, 12 * 60 * 60 * 1000); // 12 hours
+  }
+
+  async claimBankrFees() {
+    try {
+      if (!this.config.BANKR_API_KEY) {
+        return '⚠️ Bankr API key not configured. Use /bankr for setup instructions.';
+      }
+
+      if (!this.agentState.praxisTokenDeployed) {
+        return '⚠️ PRAXIS token not yet deployed. Run /bankr-launch-praxis first.';
+      }
+
+      logger.info('💰 Claiming Bankr fees for PRAXIS token...');
+      
+      const result = await this.bankr.claimFees('PRAXIS');
+      
+      let response = `✅ **Fee Claim Initiated!**\n\n`;
+      response += `**Response:** ${result.response}\n`;
+      response += `**Job ID:** ${result.jobId}\n`;
+      response += `**Status:** ${result.status}\n`;
+      
+      if (result.richData && result.richData.length > 0) {
+        response += `\n**Details:**\n`;
+        for (const data of result.richData) {
+          response += `${JSON.stringify(data, null, 2)}\n`;
+        }
+      }
+
+      // Track in state
+      await this.dataStore.save('bankr-fee-claims', {
+        symbol: 'PRAXIS',
+        jobId: result.jobId,
+        timestamp: Date.now(),
+        response: result.response
+      });
+
+      return response;
+    } catch (error) {
+      logger.error('Fee claim failed:', error);
+      return `❌ Fee claim failed: ${error.message}`;
+    }
+  }
+
+  async checkBankrBalance() {
+    try {
+      if (!this.config.BANKR_API_KEY) {
+        return '⚠️ Bankr API key not configured. Use /bankr for setup instructions.';
+      }
+
+      logger.info('💰 Checking Bankr balance...');
+      
+      const result = await this.bankr.checkBalance('all');
+      
+      let response = `💰 **Portfolio Balance**\n\n`;
+      response += `**Response:** ${result.response}\n`;
+      response += `**Job ID:** ${result.jobId}\n`;
+      
+      if (result.richData && result.richData.length > 0) {
+        response += `\n**Assets:**\n`;
+        for (const data of result.richData) {
+          response += `${JSON.stringify(data, null, 2)}\n`;
+        }
+      }
+
+      return response;
+    } catch (error) {
+      logger.error('Balance check failed:', error);
+      return `❌ Balance check failed: ${error.message}`;
+    }
+  }
+
+  async getBankrTokenPrice(symbol) {
+    try {
+      if (!this.config.BANKR_API_KEY) {
+        return '⚠️ Bankr API key not configured. Use /bankr for setup instructions.';
+      }
+
+      logger.info(`📊 Checking price for ${symbol}...`);
+      
+      const result = await this.bankr.getTokenPrice(symbol, 'Base');
+      
+      let response = `📊 **${symbol} Price on Base**\n\n`;
+      response += `**Response:** ${result.response}\n`;
+      response += `**Job ID:** ${result.jobId}\n`;
+      
+      if (result.richData && result.richData.length > 0) {
+        response += `\n**Price Data:**\n`;
+        for (const data of result.richData) {
+          response += `${JSON.stringify(data, null, 2)}\n`;
+        }
+      }
+
+      return response;
+    } catch (error) {
+      logger.error('Price check failed:', error);
+      return `❌ Price check failed: ${error.message}`;
+    }
+  }
+
+  generatePraxisMarketing() {
+    try {
+      if (!this.agentState.praxisTokenAddress) {
+        return '⚠️ PRAXIS token not yet deployed. Run /bankr-launch-praxis first.';
+      }
+
+      const marketing = MarketingContent.generateMarketingPackage(
+        this.agentState.praxisTokenAddress,
+        'Praxis AI Official',
+        'PRAXIS'
+      );
+
+      let response = `📢 **PRAXIS Marketing Content Package**\n\n`;
+      response += `Contract Address: ${this.agentState.praxisTokenAddress}\n\n`;
+      
+      response += `═══════════════════════════════════════════\n`;
+      response += `**📱 TWITTER POST**\n`;
+      response += `═══════════════════════════════════════════\n`;
+      response += `${marketing.twitter}\n\n`;
+      
+      response += `═══════════════════════════════════════════\n`;
+      response += `**💬 TELEGRAM ANNOUNCEMENT**\n`;
+      response += `═══════════════════════════════════════════\n`;
+      response += `${marketing.telegram}\n\n`;
+      
+      response += `═══════════════════════════════════════════\n`;
+      response += `**🎨 DISCORD EMBED (JSON)**\n`;
+      response += `═══════════════════════════════════════════\n`;
+      response += `\`\`\`json\n${JSON.stringify(marketing.discord, null, 2)}\n\`\`\`\n\n`;
+      
+      response += `═══════════════════════════════════════════\n`;
+      response += `**🔗 REDDIT POST**\n`;
+      response += `═══════════════════════════════════════════\n`;
+      response += `${marketing.reddit}\n\n`;
+
+      // Save marketing package to storage
+      this.dataStore.save('praxis-marketing-package', {
+        timestamp: Date.now(),
+        tokenAddress: this.agentState.praxisTokenAddress,
+        marketing: marketing
+      });
+
+      return response;
+    } catch (error) {
+      logger.error('Marketing generation failed:', error);
+      return `❌ Marketing generation failed: ${error.message}`;
+    }
+  }
+
+  async getPraxisTokenMetrics() {
+    try {
+      if (!this.agentState.praxisTokenAddress) {
+        return '⚠️ PRAXIS token not yet deployed. Run /bankr-launch-praxis first.';
+      }
+
+      if (!this.config.BANKR_API_KEY) {
+        return '⚠️ Bankr API key not configured. Cannot fetch live metrics.';
+      }
+
+      logger.info('📊 Fetching PRAXIS token metrics...');
+      
+      // Get price
+      const priceResult = await this.bankr.getTokenPrice('PRAXIS', 'Base');
+      
+      // Update metrics in state
+      this.agentState.praxisTokenMetrics = {
+        lastCheckTime: new Date().toISOString(),
+        priceResponse: priceResult.response,
+        priceData: priceResult.richData || [],
+        jobId: priceResult.jobId
+      };
+
+      await this.dataStore.save('agent-state', this.agentState);
+
+      let response = `📊 **PRAXIS Token Metrics**\n\n`;
+      response += `**Contract:** ${this.agentState.praxisTokenAddress}\n`;
+      response += `**Chain:** Base (Ethereum L2)\n`;
+      response += `**Last Updated:** ${this.agentState.praxisTokenMetrics.lastCheckTime}\n\n`;
+      
+      response += `**Price Information:**\n`;
+      response += `${priceResult.response}\n\n`;
+      
+      if (this.agentState.praxisTokenMetrics.priceData.length > 0) {
+        response += `**Data:**\n`;
+        for (const data of this.agentState.praxisTokenMetrics.priceData) {
+          response += `${JSON.stringify(data, null, 2)}\n`;
+        }
+      }
+
+      response += `\n🔗 **Trade on Clanker:** https://www.clanker.world/clanker/${this.agentState.praxisTokenAddress}\n`;
+      
+      return response;
+    } catch (error) {
+      logger.error('Metrics fetch failed:', error);
+      return `❌ Failed to fetch metrics: ${error.message}`;
+    }
+  }
+
+  async getTokenMonitorStatus() {
+    try {
+      if (!this.agentState.praxisTokenAddress) {
+        return '⚠️ PRAXIS token not yet deployed. Run /bankr-launch-praxis first.';
+      }
+
+      const summary = await this.tokenMonitor.getMetricsSummary();
+      
+      let response = `📊 **Token Monitoring Status**\n\n`;
+      response += `**Token Address:** ${summary.tokenAddress}\n`;
+      response += `**Monitoring Active:** ${summary.monitoring ? '✅ Yes' : '❌ No'}\n`;
+      response += `**Data Points Collected:** ${summary.dataPoints}\n`;
+      response += `**Last Update:** ${summary.lastUpdate || 'Never'}\n\n`;
+
+      if (summary.latest) {
+        response += `**Latest Data:**\n`;
+        response += `${summary.latest.response}\n\n`;
+      }
+
+      if (summary.dataPoints > 0) {
+        const report = await this.tokenMonitor.generateReport();
+        response += report;
+      } else {
+        response += `⏳ Still collecting initial data...\n`;
+      }
+
+      return response;
+    } catch (error) {
+      logger.error('Monitor status check failed:', error);
+      return `❌ Failed to get monitor status: ${error.message}`;
+    }
   }
 }
