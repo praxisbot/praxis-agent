@@ -48,3 +48,4 @@ temp/
 
 # CI/CD
 .github/workflows/secrets/
+.vercel

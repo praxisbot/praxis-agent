@@ -3,6 +3,7 @@ import { MoltxClient } from '../integrations/moltx/MoltxClient.js';
 import { ClawnchClient } from '../integrations/clawnch/ClawnchClient.js';
 import { FourClawClient } from '../integrations/4claw/4clawClient.js';
 import { BankrClient } from '../integrations/bankr/BankrClient.js';
+import { ClowdClient } from '../integrations/clowd/ClowdClient.js';
 import { LLMProvider } from '../llm/LLMProvider.js';
 import { SkillRegistry } from '../skills/SkillRegistry.js';
 import { DataStore } from '../utils/DataStore.js';
@@ -19,6 +20,7 @@ export class PraxisAgent {
     this.clawnch = new ClawnchClient(config);
     this.fourclaw = new FourClawClient(config);
     this.bankr = new BankrClient(config);
+    this.clowd = new ClowdClient(config);
     this.llm = new LLMProvider(config);
     this.skills = new SkillRegistry(config);
     this.dataStore = new DataStore(config.DATA_DIR);
@@ -31,6 +33,8 @@ export class PraxisAgent {
       moltxVerified: false,
       registeredOnFourClaw: false,
       bankrConnected: false,
+      clowdConnected: false,
+      clowdInstanceDeployed: false,
       lastTokenLaunchDate: null,
       earnings: 0,
       authorizedUsers: new Set(),
@@ -231,6 +235,31 @@ export class PraxisAgent {
       
       case '/praxis-monitor':
         return await this.getTokenMonitorStatus();
+      
+      case '/clowd':
+        return this.getClowdMessage();
+      
+      case '/clowd-status':
+        return await this.getClowdStatus();
+      
+      case '/clowd-deploy':
+        return await this.deployCloudInstance();
+      
+      case '/clowd-start':
+        return await this.startCloudInstance();
+      
+      case '/clowd-stop':
+        return await this.stopCloudInstance();
+      
+      case '/clowd-llm':
+        const llmQuery = parts.slice(1).join(' ');
+        if (!llmQuery.trim()) {
+          return '🤖 Usage: /clowd-llm <query>\nExample: /clowd-llm What are the market trends for AI tokens?';
+        }
+        return await this.queryCloudLLM(llmQuery);
+      
+      case '/clowd-tasks':
+        return await this.getCloudBackgroundTasks();
       
       default:
         return `Unknown command: ${cmd}. Type /help for available commands.`;
@@ -751,6 +780,15 @@ Suggestions:
 /bankr-balance - Check crypto portfolio balance
 /bankr-price <symbol> - Get token price (e.g., /bankr-price PRAXIS)
 
+**Clowd Cloud Commands** (24/7 Hosting):
+/clowd - Show Clowd integration info
+/clowd-status - Check cloud instance status and uptime
+/clowd-deploy - Deploy agent to Clowd cloud (24/7 hosting)
+/clowd-start - Start cloud instance
+/clowd-stop - Stop cloud instance (save costs)
+/clowd-llm <query> - Query cloud-hosted LLM for inference
+/clowd-tasks - View background tasks running in cloud
+
 **PRAXIS Token Commands**:
 /praxis-marketing - Generate marketing content for all platforms
 /praxis-metrics - Check PRAXIS token performance metrics
@@ -771,13 +809,16 @@ Example: /launch name:Praxis symbol:PXS description:AI Agent Token image:https:/
 - "launch token" - Initialize token launch flow
 - "engage with mentions" - Reply to recent mentions
 - "suggest collaboration" - Propose collabs with other agents
+- "deploy to cloud" - Move to Clowd for persistent 24/7 operation
 
 **About Me**:
 Name: Praxis-AI
 Mission: Build real value, utility, audience and revenue in the agent ecosystem
 Motto: "Claw forward with purpose"
 
-Questions? Ask me anything about tokens, Moltx, Moltbook, 4claw, Bankr, or agent strategy!`;
+**Platform Agnostic**: PRAXIS runs on CLI, servers, cloud functions, or messaging apps. Telegram is convenient but optional!
+
+Questions? Ask me anything about tokens, Moltx, Moltbook, 4claw, Bankr, cloud hosting, or agent strategy!`;
   }
   
   async initializeBackgroundTasks() {
@@ -1054,4 +1095,125 @@ Questions? Ask me anything about tokens, Moltx, Moltbook, 4claw, Bankr, or agent
       return `❌ Failed to get monitor status: ${error.message}`;
     }
   }
-}
+
+  // ========== Clowd Cloud Hosting Integration ==========
+
+  getClowdMessage() {
+    return `☁️ **Clowd.bot Cloud Hosting Integration**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Clowd.bot enables 24/7 persistent cloud hosting for PRAXIS-AI without needing local hardware.
+
+**Key Features**:
+✅ 24/7 uptime without your computer
+✅ Paid LLM access (GPT-4, Claude) via cloud inference
+✅ Background task execution
+✅ Automatic scaling and monitoring
+✅ Save costs by stopping instances when not needed
+✅ Access from anywhere via API endpoint
+
+**Available Commands**:
+/clowd-status - Check instance status and uptime
+/clowd-deploy - Deploy cloud instance (~$5-15/month)
+/clowd-start - Resume stopped instance
+/clowd-stop - Stop instance to save costs
+/clowd-llm <query> - Query cloud-hosted LLM
+/clowd-tasks - View background tasks
+
+**Setup**:
+1. Create account at https://clowd.bot/
+2. Get your API key from dashboard
+3. Set CLOWD_API_KEY in .env.local
+4. Run /clowd-deploy to start
+
+**Pricing**: ~$0.05-0.15 per hour depending on instance size
+💰 Cloud costs paid from agent earnings!
+
+Questions? Run /clowd-status to check connectivity.`;
+  }
+
+  async getClowdStatus() {
+    try {
+      const result = await this.clowd.getStatus();
+      
+      // Update agent state
+      if (result.status === 'connected') {
+        this.agentState.clowdConnected = true;
+      }
+      
+      return result.message;
+    } catch (error) {
+      logger.error('Clowd status check failed:', error);
+      return `❌ Failed to get Clowd status: ${error.message}`;
+    }
+  }
+
+  async deployCloudInstance() {
+    try {
+      const result = await this.clowd.deployInstance({
+        name: 'praxis-ai-cloud',
+        region: 'us-east-1',
+        instance_type: 't3.small',
+        auto_scaling: true
+      });
+      
+      if (result.status === 'deployed') {
+        this.agentState.clowdConnected = true;
+        this.agentState.clowdInstanceDeployed = true;
+      }
+      
+      return result.message;
+    } catch (error) {
+      logger.error('Cloud deployment failed:', error);
+      return `❌ Cloud deployment failed: ${error.message}`;
+    }
+  }
+
+  async startCloudInstance() {
+    try {
+      const result = await this.clowd.startInstance();
+      
+      if (result.status === 'started') {
+        this.agentState.clowdConnected = true;
+      }
+      
+      return result.message;
+    } catch (error) {
+      logger.error('Cloud instance start failed:', error);
+      return `❌ Failed to start instance: ${error.message}`;
+    }
+  }
+
+  async stopCloudInstance() {
+    try {
+      const result = await this.clowd.stopInstance();
+      return result.message;
+    } catch (error) {
+      logger.error('Cloud instance stop failed:', error);
+      return `❌ Failed to stop instance: ${error.message}`;
+    }
+  }
+
+  async queryCloudLLM(prompt) {
+    try {
+      const result = await this.clowd.queryLLM(prompt, {
+        model: 'gpt-4-turbo',
+        max_tokens: 1024,
+        temperature: 0.7
+      });
+      
+      return result.message;
+    } catch (error) {
+      logger.error('Cloud LLM query failed:', error);
+      return `❌ LLM query failed: ${error.message}`;
+    }
+  }
+
+  async getCloudBackgroundTasks() {
+    try {
+      const result = await this.clowd.getBackgroundTasks();
+      return result.message;
+    } catch (error) {
+      logger.error('Failed to get cloud tasks:', error);
+      return `❌ Failed to retrieve tasks: ${error.message}`;
+    }
+  }
