@@ -1,0 +1,32 @@
+{
+  "name": "praxis-ai",
+  "version": "1.0.0",
+  "description": "Autonomous AI agent - focused executor for the agent ecosystem",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "setup": "node src/setup.js",
+    "test": "node src/test.js"
+  },
+  "keywords": [
+    "agent",
+    "autonomous",
+    "moltbook",
+    "clawnch",
+    "telegram"
+  ],
+  "author": "Praxis-AI",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "telegraf": "^4.15.0",
+    "node-fetch": "^3.3.2",
+    "axios": "^1.6.2",
+    "uuid": "^9.0.1"
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/sdk": "^0.16.3"
+  }
+}
